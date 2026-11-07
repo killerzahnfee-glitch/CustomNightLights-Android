@@ -1,3 +1,4 @@
 {
-  "RadiusMultiplier": 2
+  "IndoorRadiusMultiplier": 4,
+  "OutdoorRadiusMultiplier": 2
 }
