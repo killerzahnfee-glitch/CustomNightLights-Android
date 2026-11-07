@@ -59,7 +59,7 @@ public sealed class ModEntry : Mod
 
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
-        if (!Context.IsWorldReady || !e.IsMultipleOf(5)) return;
+        if (!Context.IsWorldReady) return;
         bool outdoors = Game1.currentLocation?.IsOutdoors ?? true;
         double multiplier = outdoors
             ? Math.Clamp(config.OutdoorRadiusMultiplier, 1.0, 3.0)
