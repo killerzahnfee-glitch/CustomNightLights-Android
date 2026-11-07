@@ -21,18 +21,23 @@ public sealed class ModEntry : Mod
     {
         config = helper.ReadConfig<ModConfig>();
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
-        Monitor.Log("Light radius multiplier: " + config.RadiusMultiplier, LogLevel.Info);
+        Monitor.Log($"Light radius multipliers: indoors={config.IndoorRadiusMultiplier}, outdoors={config.OutdoorRadiusMultiplier}", LogLevel.Info);
     }
 
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
         if (!Context.IsWorldReady || !e.IsMultipleOf(5)) return;
-        double multiplier = Math.Clamp(config.RadiusMultiplier, 0.1, 10.0);
+        bool outdoors = Game1.currentLocation?.IsOutdoors ?? true;
+        double multiplier = outdoors
+            ? Math.Clamp(config.OutdoorRadiusMultiplier, 1.0, 3.0)
+            : Math.Clamp(config.IndoorRadiusMultiplier, 1.0, 8.0);
+
         sourcesField ??= typeof(Game1).GetField("currentLightSources", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
         sourcesProperty ??= typeof(Game1).GetProperty("currentLightSources", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
         object? sources = sourcesField?.GetValue(null) ?? sourcesProperty?.GetValue(null);
         IEnumerable? enumerable = sources is IDictionary dictionary ? dictionary.Values : sources as IEnumerable;
         if (enumerable is null) return;
+
         foreach (object? light in enumerable)
         {
             if (light is null) continue;
@@ -63,4 +68,9 @@ public sealed class ModEntry : Mod
 
     private sealed class OriginalRadius(float value) { public float Value { get; } = value; }
 }
-public sealed class ModConfig { public double RadiusMultiplier { get; set; } = 2.0; }
+
+public sealed class ModConfig
+{
+    public double IndoorRadiusMultiplier { get; set; } = 4.0;
+    public double OutdoorRadiusMultiplier { get; set; } = 2.0;
+}
