@@ -15,13 +15,14 @@ jobs:
         uses: Pathoschild/SMAPI-ModBuildWorkflow/add-reference-assemblies@v1
       - name: Build
         run: dotnet build AdjustableLightRadius.csproj --configuration Release
-      - name: Package
+      - name: Stage mod files
         run: |
           mkdir -p dist/AdjustableLightRadius
           cp manifest.json config.json dist/AdjustableLightRadius/
           cp bin/Release/net6.0/AdjustableLightRadius.dll dist/AdjustableLightRadius/
-          cd dist && zip -r ../AdjustableLightRadius-Android.zip AdjustableLightRadius
-      - uses: actions/upload-artifact@v4
+      - name: Upload installable mod artifact
+        uses: actions/upload-artifact@v4
         with:
           name: AdjustableLightRadius-Android
-          path: AdjustableLightRadius-Android.zip
+          path: dist/AdjustableLightRadius/
+          if-no-files-found: error
