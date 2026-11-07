@@ -31,7 +31,8 @@ public sealed class ModEntry : Mod
         sourcesField ??= typeof(Game1).GetField("currentLightSources", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
         sourcesProperty ??= typeof(Game1).GetProperty("currentLightSources", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
         object? sources = sourcesField?.GetValue(null) ?? sourcesProperty?.GetValue(null);
-        if (sources is not IEnumerable enumerable) return;
+        IEnumerable? enumerable = sources is IDictionary dictionary ? dictionary.Values : sources as IEnumerable;
+        if (enumerable is null) return;
         foreach (object? light in enumerable)
         {
             if (light is null) continue;
