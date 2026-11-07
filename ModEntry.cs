@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using System.Globalization;
 
 namespace AdjustableLightRadius;
 
@@ -21,7 +22,38 @@ public sealed class ModEntry : Mod
     {
         config = helper.ReadConfig<ModConfig>();
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
+        helper.Events.GameLoop.GameLaunched += OnGameLaunched;
         Monitor.Log($"Light radius multipliers: indoors={config.IndoorRadiusMultiplier}, outdoors={config.OutdoorRadiusMultiplier}", LogLevel.Info);
+    }
+
+    private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
+    {
+        var menu = Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
+        if (menu is null)
+        {
+            Monitor.Log("Generic Mod Config Menu not found; config.json remains available.", LogLevel.Info);
+            return;
+        }
+
+        menu.Register(ModManifest, () => config = new ModConfig(), () => Helper.WriteConfig(config));
+        menu.AddNumberOption(
+            ModManifest,
+            () => config.IndoorRadiusMultiplier,
+            value => config.IndoorRadiusMultiplier = value,
+            () => "Lichtradius drinnen",
+            () => "Multiplikator für Lichtquellen in Gebäuden (1× bis 8×).",
+            min: 1f, max: 8f, interval: 0.5f,
+            formatValue: value => value.ToString("0.0", CultureInfo.InvariantCulture) + "×"
+        );
+        menu.AddNumberOption(
+            ModManifest,
+            () => config.OutdoorRadiusMultiplier,
+            value => config.OutdoorRadiusMultiplier = value,
+            () => "Lichtradius draußen",
+            () => "Multiplikator für Lichtquellen im Freien (1× bis 3×).",
+            min: 1f, max: 3f, interval: 0.5f,
+            formatValue: value => value.ToString("0.0", CultureInfo.InvariantCulture) + "×"
+        );
     }
 
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -71,6 +103,23 @@ public sealed class ModEntry : Mod
 
 public sealed class ModConfig
 {
-    public double IndoorRadiusMultiplier { get; set; } = 4.0;
-    public double OutdoorRadiusMultiplier { get; set; } = 2.0;
+    public float IndoorRadiusMultiplier { get; set; } = 4.0f;
+    public float OutdoorRadiusMultiplier { get; set; } = 2.0f;
+}
+
+public interface IGenericModConfigMenuApi
+{
+    void Register(IManifest mod, Action reset, Action save, bool titleScreenOnly = false);
+    void AddNumberOption(
+        IManifest mod,
+        Func<float> getValue,
+        Action<float> setValue,
+        Func<string> name,
+        Func<string>? tooltip = null,
+        float? min = null,
+        float? max = null,
+        float? interval = null,
+        Func<float, string>? formatValue = null,
+        string? fieldId = null
+    );
 }
