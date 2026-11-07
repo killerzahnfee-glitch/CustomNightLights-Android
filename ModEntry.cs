@@ -98,7 +98,15 @@ public sealed class ModEntry : Mod
         }
     }
 
-    private sealed class OriginalRadius(float value) { public float Value { get; } = value; }
+    private sealed class OriginalRadius
+    {
+        public float Value { get; }
+
+        public OriginalRadius(float value)
+        {
+            Value = value;
+        }
+    }
 }
 
 public sealed class ModConfig
