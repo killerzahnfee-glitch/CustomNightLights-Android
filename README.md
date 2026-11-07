@@ -1,13 +1,22 @@
 # Adjustable Light Radius — Android prototype
 
-This is a new implementation of the light-radius feature, not a decompilation of the binary-only CustomNightLights mod. **Not compiled or tested on Android yet.** Do not install together with the original mod.
+Independent implementation of light radius adjustment. **Not yet confirmed compiled or tested on Android.** Do not install alongside the original CustomNightLights.
 
-Target environment: Stardew Valley 1.6.15.3, Android SMAPI 4.3.2.5 (compatibility not verified).
+Target: Stardew Valley 1.6.15.3 / Android SMAPI 4.3.2.5 (unverified).
 
-Set `RadiusMultiplier` in `config.json` (2.0 = twice the radius). Light colors are unchanged.
+## Configuration
 
-## Build requirements
-.NET SDK and the corresponding Stardew Valley + SMAPI assemblies are required. The `Pathoschild.Stardew.ModBuildConfig` package supports builds against a local game installation. GitHub-hosted runners do not have Stardew Valley's proprietary game files, so a functional CI build cannot be guaranteed without supplying those dependencies lawfully.
+Edit `config.json`:
 
-## Limitations
-Reflection accesses the light-source collection and its radius field. Android builds may differ, and not all lights may be covered. Verify with a SMAPI log and actual in-game testing.
+```json
+{
+  "IndoorRadiusMultiplier": 4.0,
+  "OutdoorRadiusMultiplier": 2.0
+}
+```
+
+Indoor multiplier is limited to **1.0–8.0**; outdoor multiplier to **1.0–3.0**. These apply to light sources in the *current location*, according to whether the location is outdoors. Light colors remain unchanged.
+
+## Build and testing
+
+The GitHub Actions workflow attempts to build using public reference assemblies. Check Actions for success/failure. Android compatibility and light coverage require in-game verification. The code uses reflection to access game light sources and their radius member; some game builds and special lights may differ.
