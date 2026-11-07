@@ -1,0 +1,27 @@
+name: Build Android light radius mod
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+      - name: Install Stardew reference assemblies
+        uses: Pathoschild/SMAPI-ModBuildWorkflow/add-reference-assemblies@v1
+      - name: Build
+        run: dotnet build AdjustableLightRadius.csproj --configuration Release
+      - name: Package
+        run: |
+          mkdir -p dist/AdjustableLightRadius
+          cp manifest.json config.json dist/AdjustableLightRadius/
+          cp bin/Release/net6.0/AdjustableLightRadius.dll dist/AdjustableLightRadius/
+          cd dist && zip -r ../AdjustableLightRadius-Android.zip AdjustableLightRadius
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AdjustableLightRadius-Android
+          path: AdjustableLightRadius-Android.zip
