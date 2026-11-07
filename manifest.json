@@ -1,0 +1,9 @@
+{
+  "Name": "Adjustable Light Radius (Android)",
+  "Author": "killerzahnfee-glitch",
+  "Version": "0.1.0",
+  "Description": "Adjusts existing light source radii without changing colors.",
+  "UniqueID": "killerzahnfee.AdjustableLightRadius",
+  "EntryDll": "AdjustableLightRadius.dll",
+  "MinimumApiVersion": "4.0.0"
+}
