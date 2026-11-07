@@ -17,6 +17,7 @@ public sealed class ModEntry : Mod
     private FieldInfo? sourcesField;
     private PropertyInfo? sourcesProperty;
     private readonly Dictionary<Type, MemberInfo?> radiusMembers = new();
+    private bool reportedLightStructure;
 
     public override void Entry(IModHelper helper)
     {
@@ -68,7 +69,11 @@ public sealed class ModEntry : Mod
         sourcesProperty ??= typeof(Game1).GetProperty("currentLightSources", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
         object? sources = sourcesField?.GetValue(null) ?? sourcesProperty?.GetValue(null);
         IEnumerable? enumerable = sources is IDictionary dictionary ? dictionary.Values : sources as IEnumerable;
-        if (enumerable is null) return;
+        if (enumerable is null)
+        {
+            Monitor.LogOnce("Could not find current light sources. Radius changes are inactive.", LogLevel.Warn);
+            return;
+        }
 
         foreach (object? light in enumerable)
         {
@@ -80,16 +85,41 @@ public sealed class ModEntry : Mod
                     ?? type.GetProperty("radius", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
                 radiusMembers[type] = member;
             }
-            if (member is null) continue;
+            if (member is null)
+            {
+                Monitor.LogOnce($"Light type {type.FullName} has no radius member.", LogLevel.Warn);
+                continue;
+            }
             try
             {
                 object? raw = member is FieldInfo field ? field.GetValue(light) : ((PropertyInfo)member).GetValue(light);
+                if (raw is null) continue;
+
+                // Stardew's light radius is commonly a NetFloat, not a plain float.
+                // Write its Value instead of trying to replace the readonly NetFloat field.
+                object radiusOwner = light;
+                MemberInfo radiusMember = member;
+                if (raw is not float)
+                {
+                    radiusOwner = raw;
+                    Type netType = raw.GetType();
+                    radiusMember = (MemberInfo?)netType.GetProperty("Value", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                        ?? netType.GetField("Value", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                        ?? throw new InvalidOperationException($"No writable Value on {netType.FullName}");
+                    raw = radiusMember is PropertyInfo valueProperty ? valueProperty.GetValue(radiusOwner) : ((FieldInfo)radiusMember).GetValue(radiusOwner);
+                }
+
                 if (raw is not float current) continue;
                 OriginalRadius stored = originals.GetValue(light, _ => new OriginalRadius(current));
                 float desired = (float)(stored.Value * multiplier);
                 if (Math.Abs(current - desired) < 0.001f) continue;
-                if (member is FieldInfo f) f.SetValue(light, desired);
-                else if (member is PropertyInfo p && p.CanWrite) p.SetValue(light, desired);
+                if (radiusMember is FieldInfo f) f.SetValue(radiusOwner, desired);
+                else if (radiusMember is PropertyInfo p && p.CanWrite) p.SetValue(radiusOwner, desired);
+                if (!reportedLightStructure)
+                {
+                    reportedLightStructure = true;
+                    Monitor.Log($"Adjusted first light radius from {current:0.##} to {desired:0.##}.", LogLevel.Info);
+                }
             }
             catch (Exception ex)
             {
